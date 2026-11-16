@@ -57,7 +57,7 @@ Reduced motion is implemented with `prefers-reduced-motion: reduce` (no transiti
 
 ## Deploy to Vercel
 
-Repository name: **ritusaathi**. This checkout is `/Users/pritishdash/RITUSAATHI`; `package.json` and its matching `package-lock.json` are at the repository root. **No GitHub remote has been created or pushed** because `gh auth status` reports an invalid token. Once GitHub authentication is restored, publish this repository privately as `ritusaathi` and import it in Vercel.
+Repository: **pritish042/RITUSAATHI**, with `origin` set to [https://github.com/pritish042/RITUSAATHI](https://github.com/pritish042/RITUSAATHI). This checkout is `/Users/pritishdash/RITUSAATHI`; `package.json` and its matching `package-lock.json` are at the repository root. Import **RITUSAATHI** in Vercel and select the **main** branch.
 
 Use these import settings:
 
