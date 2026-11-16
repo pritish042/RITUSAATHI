@@ -1,12 +1,13 @@
 // All presentation copy lives here for a future Odia locale.
 export const s = {
+  journalLabel:'A personal health journal', previewTitle:'From the journal', previewHeading:'Every date tells part of the story.', previewFootnote:'Four recorded starts. Three completed intervals. One place to see the whole picture.', daysBetween:'days between starts', addedDate:'Added date',
   name:'RituSaathi', tagline:'Track your cycle. Know what to ask.', prototype:'A thoughtful space for your cycle',
   home:'Home', diary:'My diary', example:'Fictional example', summary:'Visit summary', back:'Back to diary',
   start:'Start my diary', explore:'Explore a fictional example', reset:'Reset example', logPeriod:'Log period', logSymptom:'Log symptom',
-  heroTitle:'A little clarity,\none day at a time.', heroText:'Your dates, your symptoms, your words. Keep a simple diary and bring a clearer history to your next healthcare appointment.',
+  heroTitle:'A little clarity,\none day at a time.', heroText:'Keep your dates and optional symptoms together. Bring a clearer history to your next healthcare appointment.',
   local:'Only in this browser', noAccount:'No account needed', yourPace:'At your own pace',
   howTitle:'Small notes. Better conversations.', howSteps:[['01','Keep your dates','Log when your period starts. Add symptoms only if you want to.'],['02','See your history','Understand the time between your recorded period starts.'],['03','Go prepared','Bring your dates and questions to a healthcare appointment.']],
-  welcome:'Your diary, at your pace.', intro:'Every entry helps you tell your story. There is no need to log perfectly.', exampleIntro:'Explore how a missing date can change the story. These records are entirely fictional.',
+  welcome:'Your cycle journal.', intro:'Every entry helps you tell your story. There is no need to log perfectly.', exampleIntro:'Explore how a missing date can change the story. These records are entirely fictional.',
   timeline:'Your timeline', timelineHint:'Period starts and symptom notes, together.', recorded:'Period starts', completed:'Completed intervals', since:'Days since latest start', elapsed:'Elapsed time, not a completed cycle',
   emptyTitle:'Your story starts here.', emptyText:'Log a period start to begin your timeline. Symptoms are always optional.', firstInterval:'Add another period start to calculate your first completed interval.',
   noIntervals:'No completed intervals yet.', cycle:'day interval', periodStart:'Period started', symptomNote:'Symptom note', edit:'Edit', delete:'Delete',
@@ -33,3 +34,5 @@ export const s = {
 };
 export function list(values:number[]):string { return values.length<2?values.join(''): `${values.slice(0,-1).join(', ')}, and ${values.at(-1)}`.replace(/^([^,]+), and /,'$1 and '); }
 export const formatDate = (date:string) => new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(`${date}T00:00:00Z`));
+
+export const formatMonthYear = (date:string) => new Intl.DateTimeFormat('en-GB',{month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(`${date}T00:00:00Z`));

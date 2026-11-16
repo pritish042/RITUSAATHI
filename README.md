@@ -7,7 +7,7 @@
 Requires Node.js 20.9+ and npm.
 
 ```sh
-npm install
+npm ci
 npm test
 npm run lint
 npm run build
@@ -23,11 +23,11 @@ Open http://127.0.0.1:3000. For development use `npm run dev`. No environment va
 3. Find **Presentation tip** in the sidebar (below the timeline on mobile). It displays the exact midpoint date of the longest completed interval from the currently recorded dates. Initially this is **75 calendar days before today**, midway between starts 99 and 51 days ago. For 16 November 2026, enter **2 September 2026**. Use the dynamically displayed date if presenting another day, or reset first to regenerate relative dates.
 4. Choose **Add a missed period**, enter that midpoint, and save. Show **42, 24, 24, 44 days**. The three-long-cycle question disappears. The explanation is calculated from the actual enclosing interval and inserted date, and confirmation clears.
 5. Open **Visit summary**, edit **What I want to ask**, and use **Print or save as PDF**. The print dialog uses the browser's PDF destination. Fictional labels remain in printed output; navigation and controls disappear.
-6. Return Home and **Start my diary**: it begins empty. Add a personal entry, switch to the example and reset it, then return to confirm the personal entry is unchanged. Reload and open the diary again to demonstrate persistence.
+6. Return Home and **Start my diary**: it begins empty. Add a personal entry, switch to the example and reset it, then return to confirm the personal entry is unchanged. Refresh `/diary` directly to demonstrate persistence.
 
 ## Privacy and storage
 
-Personal and fictional records use distinct local-storage keys (`ritusaathi.personal.v1` and `ritusaathi.example.v1`). Opening/resetting the example never writes the personal key. The app does not send diary contents in URLs, network requests, logs, analytics, or AI calls. Assets and fonts are local; clinical reference links are opened only when chosen. Browser print/PDF is controlled by the user.
+Personal and fictional records use distinct local-storage keys (`ritusaathi.personal.v1` and `ritusaathi.example.v1`). Opening/resetting the example never writes the personal key. The app does not send diary contents in URLs, network requests, logs, analytics, or AI calls. Instrument Serif and DM Sans are bundled locally through Fontsource packages (with Georgia/system-sans fallbacks); the build does not download fonts. All assets are local; clinical reference links are opened only when chosen. Browser print/PDF is controlled by the user.
 
 Local storage is **not encrypted or access-controlled**. Anyone using the same device and browser profile may read it. Clearing browser/site data, using a temporary browser session, or changing browser profiles can remove or hide records. Multiple tabs are not synchronized; use one tab for editing. Storage errors show a visible warning, and malformed saved data is not silently overwritten. **Delete my diary** requires confirmation and removes the personal storage key, including dates, symptoms, context, and questions.
 
@@ -43,6 +43,33 @@ Clinical reference requested for the prototype: [Recommendations from the 2023 I
 
 `npm test` covers relative seed intervals, computed midpoint correction, exact 35-day boundaries, latest-three selection, all eligibility gates, sparse history, leap years, month/year/DST boundaries across time zones, date validation, storage validation, and confirmation invalidation. `npm run lint` and `npm run build` check the complete application. Period-date validation and duplicate rejection also run in the UI. Calendar intervals use ISO calendar dates converted to UTC ordinal days; “days since latest start” is separately labeled elapsed time.
 
-Verified in this workspace: **13 tests pass**, **ESLint passes**, and **production build passes**. The production server was launched at **http://127.0.0.1:3000**, and an HTTP smoke check verified the home page. Runtime dependency audit reported zero known advisories at handoff. Mobile browser interaction, rendered layout, browser reload persistence, and the print dialog could not be manually exercised because the browser-control host was unavailable. Persistence and example-reset isolation were verified with the same storage module the UI uses, against an in-memory storage implementation; this is not a substitute for browser QA.
+Verified after a clean `npm ci`: **15 tests pass**, **ESLint passes**, and **production build passes**. Contrast tests use the actual CSS palette tokens for text, controls, correction highlights, and light/dark focus states. The production server runs at **http://127.0.0.1:3000**. HTTP checks cover Home, `/diary`, `/example`, and both summary routes.
 
-GitHub publishing was skipped because `gh auth status` reported an invalid authentication token. The completed repository is committed locally on `main`.
+Native Safari verification covered:
+
+- Desktop journal spread and both entry actions before the preview at **375 × 812**.
+- Seeded fictional timeline and the midpoint insertion: **42, 24, 24, 44**; obsolete prompt removed, changed section highlighted, inserted entry receives focus, and the generated correction explanation appears.
+- Refreshing `/example` retains the correction. Refreshing `/diary` retains a disposable fictional verification note. Resetting the fictional example preserves that personal note. The test note was removed afterward; the example was reset for presentation.
+- Visit-summary route and browser print dialog: clean dark text on white, fictional label retained, navigation and app controls absent. PDF file saving itself was not performed.
+- The Safari console showed no hydration warnings or errors on a diary refresh.
+
+Reduced motion is implemented with `prefers-reduced-motion: reduce` (no transitions or animations); switching the OS preference and testing with a screen reader were not performed. Browser QA was limited to Safari, including its responsive viewport, rather than physical mobile devices or every browser.
+
+## Deploy to Vercel
+
+Repository name: **ritusaathi**. This checkout is `/Users/pritishdash/RITUSAATHI`; `package.json` and its matching `package-lock.json` are at the repository root. **No GitHub remote has been created or pushed** because `gh auth status` reports an invalid token. Once GitHub authentication is restored, publish this repository privately as `ritusaathi` and import it in Vercel.
+
+Use these import settings:
+
+| Setting | Value |
+| --- | --- |
+| Root Directory | `.` (the repository root; leave the root selection at its default) |
+| Framework Preset | **Next.js** |
+| Install Command | `npm ci` |
+| Build Command | `npm run build` (standard `next build`) |
+| Output Directory | Leave the Next.js default; no override |
+| Environment Variables | **None** |
+
+No API keys, database, external services, `vercel.json`, or custom deployment configuration are required. `next.config.ts` only anchors Turbopack to this repository to avoid unrelated parent-directory lockfiles during local builds. Bundled fonts work without build-time font downloads. Vercel performs the standard Next.js deployment; see [Vercel's Next.js documentation](https://vercel.com/docs/frameworks/full-stack/nextjs) and [build settings](https://vercel.com/docs/builds/configure-a-build).
+
+The prototype has been built and launched **locally only**. Deployment is left to you. Browser diary data belongs to its origin: records at `127.0.0.1` will not automatically move to your Vercel domain, and preview domains each have separate local storage. The same shared-browser privacy limitations apply after deployment.
