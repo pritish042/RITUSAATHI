@@ -1,2 +1,2 @@
-import Journal from '@/components/journal';
-export default function Diary() { return <Journal key="personal" initialMode="personal" />; }
+import PersonalDiary from '@/components/personal-diary';
+export default function Today() { return <PersonalDiary />; }

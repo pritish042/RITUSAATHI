@@ -2,9 +2,12 @@
 export type Answer = 'yes' | 'no' | 'unsure' | '';
 export type Eligibility = { adult: Answer; established: Answer; natural: Answer; outside: Answer };
 export type Note = { id: string; date: string; text: string };
-export type Diary = { periods: string[]; notes: Note[]; eligibility: Eligibility; confirmation: 'unconfirmed' | 'complete' | 'unsure'; questions: string };
+export type Flow = 'spotting' | 'light' | 'medium' | 'heavy';
+export type Cramps = 'none' | 'mild' | 'moderate' | 'severe';
+export type DailyEntry = { date: string; flow?: Flow; cramps?: Cramps; symptoms: string[]; note: string };
+export type Diary = { schemaVersion: 2; entries: DailyEntry[]; periods: string[]; notes: Note[]; eligibility: Eligibility; confirmation: 'unconfirmed' | 'complete' | 'unsure'; questions: string };
 export const emptyEligibility = (): Eligibility => ({ adult: '', established: '', natural: '', outside: '' });
-export const emptyDiary = (): Diary => ({ periods: [], notes: [], eligibility: emptyEligibility(), confirmation: 'unconfirmed', questions: '' });
+export const emptyDiary = (): Diary => ({ schemaVersion: 2, entries: [], periods: [], notes: [], eligibility: emptyEligibility(), confirmation: 'unconfirmed', questions: '' });
 export function todayISO(now = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 }
@@ -45,12 +48,23 @@ export function midpoint(periods: string[]): string | null {
   const widest = intervals(periods).sort((a,b)=>b.days-a.days)[0];
   return widest && widest.days%2===0 ? addDays(widest.start,widest.days/2) : null;
 }
-/** Validate local data before rendering. Invalid data never silently becomes a new diary. */
-export function parseDiary(raw: string): Diary {
+/** Read the original production format and v2 without changing the saved record. */
+export function parseDiary(raw: string, today = todayISO()): Diary {
   const d = JSON.parse(raw);
-  if (!d || !Array.isArray(d.periods) || !Array.isArray(d.notes) || !d.eligibility || typeof d.questions!=='string' || !['unconfirmed','complete','unsure'].includes(d.confirmation)) throw new Error('Invalid diary');
-  if (d.periods.some((p: unknown)=>typeof p!=='string' || validateDate(p,todayISO())!==null) || new Set(d.periods).size!==d.periods.length) throw new Error('Invalid periods');
+  const validDate = (date: unknown): date is string => typeof date === 'string' && validateDate(date, today) === null;
+  if (!d || typeof d !== 'object' || (d.schemaVersion !== undefined && d.schemaVersion !== 2) || !Array.isArray(d.periods) || !Array.isArray(d.notes) || !d.eligibility || typeof d.questions !== 'string' || !['unconfirmed','complete','unsure'].includes(d.confirmation)) throw new Error('Invalid diary');
+  if (d.periods.some((p: unknown)=>!validDate(p)) || new Set(d.periods).size!==d.periods.length) throw new Error('Invalid periods');
   if (!['adult','established','natural','outside'].every(k=>['yes','no','unsure',''].includes(d.eligibility[k]))) throw new Error('Invalid profile');
-  if (d.notes.some((n: Note)=>!n || typeof n.id!=='string' || typeof n.text!=='string' || typeof n.date!=='string' || validateDate(n.date,todayISO())!==null)) throw new Error('Invalid notes');
-  return { ...d, periods: sortedPeriods(d.periods) };
+  if (d.notes.some((n: Note)=>!n || typeof n.id!=='string' || !n.id || typeof n.text!=='string' || !validDate(n.date)) || new Set(d.notes.map((n:Note)=>n.id)).size!==d.notes.length) throw new Error('Invalid notes');
+  if (d.schemaVersion === 2 && !Array.isArray(d.entries)) throw new Error('Missing entries');
+  const entries = d.entries ?? [];
+  if (!Array.isArray(entries) || entries.some((e: DailyEntry)=>!e || !validDate(e.date) || (e.flow!==undefined && !['spotting','light','medium','heavy'].includes(e.flow)) || (e.cramps!==undefined && !['none','mild','moderate','severe'].includes(e.cramps)) || !Array.isArray(e.symptoms) || e.symptoms.some(v=>typeof v!=='string'||!v.trim()||v.length>100) || new Set(e.symptoms).size!==e.symptoms.length || typeof e.note!=='string') || new Set(entries.map((e:DailyEntry)=>e.date)).size!==entries.length) throw new Error('Invalid daily entries');
+  return {
+    schemaVersion: 2,
+    periods: sortedPeriods(d.periods),
+    notes: d.notes.map((n:Note)=>({id:n.id,date:n.date,text:n.text})),
+    entries: entries.map((e:DailyEntry)=>({date:e.date,...(e.flow?{flow:e.flow}:{}),...(e.cramps?{cramps:e.cramps}:{}),symptoms:[...e.symptoms],note:e.note})).sort((a:DailyEntry,b:DailyEntry)=>a.date.localeCompare(b.date)),
+    eligibility: {adult:d.eligibility.adult, established:d.eligibility.established, natural:d.eligibility.natural, outside:d.eligibility.outside},
+    questions:d.questions, confirmation:d.confirmation,
+  };
 }

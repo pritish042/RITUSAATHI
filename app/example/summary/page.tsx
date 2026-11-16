@@ -1,2 +1,2 @@
-import Journal from '@/components/journal';
-export default function ExampleSummary() { return <Journal key="example-summary" initialMode="example" initialView="summary" />; }
+import PersonalDiary from '@/components/personal-diary';
+export default function ExampleSummary() { return <PersonalDiary view="summary" example />; }

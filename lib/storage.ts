@@ -7,7 +7,7 @@ const keys: Record<DiaryMode, string> = {
 };
 export function loadDiary(storage: DiaryStorage, mode: DiaryMode, today: string): Diary {
   const raw = storage.getItem(keys[mode]);
-  return raw === null ? (mode === 'example' ? seedDiary(today) : emptyDiary()) : parseDiary(raw);
+  return raw === null ? (mode === 'example' ? seedDiary(today) : emptyDiary()) : parseDiary(raw, today);
 }
 export function saveDiary(storage: DiaryStorage, mode: DiaryMode, diary: Diary): void {
   storage.setItem(keys[mode], JSON.stringify(diary));

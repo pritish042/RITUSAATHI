@@ -1,6 +1,6 @@
 # RituSaathi
 
-**Track your cycle. Know what to ask.** A mobile-friendly menstrual health diary prototype built with Next.js App Router, TypeScript, and responsive CSS. English presentation copy is centralized in `lib/strings.ts` for future Odia translation.
+**Track your cycle. Know what to ask.** A mobile-friendly menstrual health diary built with Next.js App Router, TypeScript, and responsive CSS. English copy is centralized in `lib/strings.ts` and `lib/daily-strings.ts` for future Odia translation.
 
 ## Run locally
 
@@ -15,6 +15,15 @@ npm start
 ```
 
 Open http://127.0.0.1:3000. For development use `npm run dev`. No environment variables, login, or paid services are required. Next.js telemetry was disabled for verification (`NEXT_TELEMETRY_DISABLED=1`).
+
+## Personal diary
+
+- `/diary`: Today, one daily check-in, the last explicit period start, and elapsed calendar days.
+- `/diary/history`: month calendar and chronological list, date details, completed cycle intervals, and date-verification flow.
+- `/diary/summary`: last 90 days, last 6 calendar months, or all records; distinct **days logged**; optional diary-note inclusion; appointment questions; the document preview is the printable content.
+- `/diary/settings`: local JSON backup/restore, privacy controls, and optional cycle-observation profile.
+
+A check-in can include an explicit period start, flow, cramps, symptoms, and a short note. Every field is optional, but at least one observation is needed. Unanswered values stay unknown; spotting/flow do not create period starts. Selecting an existing date loads its saved values and separate older notes. Deleting a day requires confirmation. Browser storage must succeed before a check-in is marked saved; a failed save leaves the draft open.
 
 ## Two-minute demo
 
@@ -31,6 +40,10 @@ Personal and fictional records use distinct local-storage keys (`ritusaathi.pers
 
 Local storage is **not encrypted or access-controlled**. Anyone using the same device and browser profile may read it. Clearing browser/site data, using a temporary browser session, or changing browser profiles can remove or hide records. Multiple tabs are not synchronized; use one tab for editing. Storage errors show a visible warning, and malformed saved data is not silently overwritten. **Delete my diary** requires confirmation and removes the personal storage key, including dates, symptoms, context, and questions.
 
+Backups contain private health information in plain text. The JSON file is generated and read locally; it is never uploaded to a service. Restore validates the envelope, dates, choices, and duplicate records, previews counts, and requires confirmation before replacing the personal diary. Invalid files leave existing records intact. Keep downloaded backups private.
+
+The v2 data format adds `schemaVersion: 2` and an `entries` array while retaining the original period starts, separate dated notes, confirmation, profile, and questions. Existing production v1 records are upgraded in memory without writing on load; successful later saves persist v2 using the existing isolated storage keys. Unreadable data is locked rather than replaced, and Settings can download the original saved bytes for recovery. Back up before using older app versions, which do not understand daily entries.
+
 ## Observation scope — pending clinician review
 
 The pure module `lib/diary.ts` enables one narrow observation only when all answers explicitly confirm: adult (18+), at least three years since first period, natural cycles, and outside pregnancy, postpartum, and perimenopause. Skipped/unsure/No answers disable the observation but leave the diary and summary usable. Symptoms are optional and are not inputs to the rule.
@@ -43,17 +56,11 @@ Clinical reference requested for the prototype: [Recommendations from the 2023 I
 
 `npm test` covers relative seed intervals, computed midpoint correction, exact 35-day boundaries, latest-three selection, all eligibility gates, sparse history, leap years, month/year/DST boundaries across time zones, date validation, storage validation, and confirmation invalidation. `npm run lint` and `npm run build` check the complete application. Period-date validation and duplicate rejection also run in the UI. Calendar intervals use ISO calendar dates converted to UTC ordinal days; “days since latest start” is separately labeled elapsed time.
 
-Verified after a clean `npm ci`: **15 tests pass**, **ESLint passes**, and **production build passes**. Contrast tests use the actual CSS palette tokens for text, controls, correction highlights, and light/dark focus states. The production server runs at **http://127.0.0.1:3000**. HTTP checks cover Home, `/diary`, `/example`, and both summary routes.
+Upgrade verification: **27 tests passed**, **ESLint passed**, and the **standard Next.js production build passed**. Tests cover production v1 migration, separate older notes and confirmation, flow/start independence, one record per date, editing/deletion, date/calendar boundaries, summary ranges and days-logged counts, backup round trips and malformed-file rejection, storage failures, and private-note exclusion from the actual rendered print document. The original observation and midpoint-correction tests still pass.
 
-Native Safari verification covered:
+Chrome browser checks on a separate local origin (`http://127.0.0.1:3001`) verified yesterday's period start plus today's flow, refresh persistence, cramps editing without duplication, matching calendar/list/summary records, the 375px calendar and summary, downloaded JSON backup and confirmed restore, malformed-file rejection, and excluded notes absent from the print preview. Chrome's console showed no messages during the checked History workflow. QA data was fictional and isolated from existing port-3000 records.
 
-- Desktop journal spread and both entry actions before the preview at **375 × 812**.
-- Seeded fictional timeline and the midpoint insertion: **42, 24, 24, 44**; obsolete prompt removed, changed section highlighted, inserted entry receives focus, and the generated correction explanation appears.
-- Refreshing `/example` retains the correction. Refreshing `/diary` retains a disposable fictional verification note. Resetting the fictional example preserves that personal note. The test note was removed afterward; the example was reset for presentation.
-- Visit-summary route and browser print dialog: clean dark text on white, fictional label retained, navigation and app controls absent. PDF file saving itself was not performed.
-- The Safari console showed no hydration warnings or errors on a diary refresh.
-
-Reduced motion is implemented with `prefers-reduced-motion: reduce` (no transitions or animations); switching the OS preference and testing with a screen reader were not performed. Browser QA was limited to Safari, including its responsive viewport, rather than physical mobile devices or every browser.
+Browser checking was stopped at the user's request before completing the upgraded fictional midpoint interaction and rechecking personal data after it. The midpoint logic and personal/example isolation pass automated tests. Browser storage-quota failure, OS reduced-motion settings, screen-reader use, physical devices, and final PDF-file saving were not exercised. The source includes reduced-motion support. A final small wording-only change followed the successful production build.
 
 ## Deploy to Vercel
 

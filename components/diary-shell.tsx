@@ -1,0 +1,7 @@
+import Link from 'next/link';
+import { d } from '@/lib/daily-strings';
+import { s } from '@/lib/strings';
+export type DiaryView = 'today'|'history'|'summary'|'settings';
+export function DiaryShell({view,example=false,children}:{view:DiaryView;example?:boolean;children:React.ReactNode}) {
+ return <><header className="site-header daily-header no-print"><Link href="/" className="brand">{s.name}<span className="brand-dot">.</span></Link>{example?<Link className="text-button" href="/example">{s.back}</Link>:<><nav className="desktop-diary-nav" aria-label={s.diary}>{([['today','/diary',d.today],['history','/diary/history',d.history],['summary','/diary/summary',d.summary]] as const).map(([name,href,label])=><Link key={name} href={href} aria-current={view===name?'page':undefined}>{label}</Link>)}</nav><Link className="text-button settings-link" href="/diary/settings" aria-current={view==='settings'?'page':undefined}>{d.settings}</Link></>}</header>{children}{!example&&<nav className="bottom-diary-nav no-print" aria-label={s.diary}>{([['today','/diary',d.today,'◉'],['history','/diary/history',d.history,'▦'],['summary','/diary/summary',d.summary,'▤']] as const).map(([name,href,label,icon])=><Link key={name} href={href} aria-current={view===name?'page':undefined}><span aria-hidden="true">{icon}</span>{label}</Link>)}</nav>}<footer className="site-footer no-print"><span>{s.local}</span><span>{s.reviewPending}</span></footer></>;
+}

@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { type Diary, type Note, emptyDiary, seedDiary, todayISO, intervals, daysBetween, observation, isEligible, validateDate, setPeriods, splitInterval, midpoint } from '@/lib/diary';
 import { loadDiary, saveDiary, resetExample, deletePersonalDiary } from '@/lib/storage';
+import { d } from '@/lib/daily-strings';
 import { s, formatDate, formatMonthYear } from '@/lib/strings';
 
 type Mode = 'personal'|'example';
@@ -14,6 +15,7 @@ export default function Journal({initialMode=null,initialView='diary'}:{initialM
  const setMode=(next:Mode|null)=>router.push(next==='personal'?'/diary':next==='example'?'/example':'/');
  const setView=(next:'diary'|'summary')=>router.push(`${mode==='example'?'/example':'/diary'}${next==='summary'?'/summary':''}`);
  const [today,setToday]=useState('');
+ const [returning,setReturning]=useState(false);
  const [correction,setCorrection]=useState<({added:string}&NonNullable<ReturnType<typeof splitInterval>>)|null>(null);
  const [highlight,setHighlight]=useState(false);
  const correctionRef=useRef<HTMLLIElement|null>(null);
@@ -37,6 +39,7 @@ export default function Journal({initialMode=null,initialView='diary'}:{initialM
   queueMicrotask(()=>{
    if(!active)return;
    const currentToday=todayISO();setToday(currentToday);
+   if(!mode)try{setReturning(localStorage.getItem('ritusaathi.personal.v1')!==null);}catch{}
    if(mode){
     try{const loaded=loadDiary(localStorage,mode,currentToday);setData(loaded);setStorageError('');
      // Only persist an initialized example after successfully reading its own key.
@@ -48,9 +51,9 @@ export default function Journal({initialMode=null,initialView='diary'}:{initialM
   return()=>{active=false;};
  },[mode]);
  function update(next:Diary){
-  if(locked)return;
-  setData(next);
-  if(mode)try{saveDiary(localStorage,mode,next);setStorageError('');}catch{setStorageError(s.storageError);}
+  if(locked)return false;
+  if(mode)try{saveDiary(localStorage,mode,next);setStorageError('');}catch{setStorageError(d.saveFailed);return false;}
+  setData(next);return true;
  }
  function save(e:React.FormEvent){
   e.preventDefault();if(!editor)return;
@@ -59,16 +62,17 @@ export default function Journal({initialMode=null,initialView='diary'}:{initialM
    if(data.periods.some(d=>d===editor.date && d!==editor.original)){setError(s.duplicate);return;}
    const next=setPeriods(data,[...data.periods.filter(d=>d!==editor.original),editor.date]);
    const split=!editor.original?splitInterval(data.periods,editor.date):null;
+   if(!update(next)){setError(d.saveFailed);return;}
    if(split){setCorrection({...split,added:editor.date});setHighlight(true);}else{setCorrection(null);}
-   update(next);setNotice(split?`${s.split(split.days,split.first,split.second)} ${s.updated(intervals(next.periods).map(i=>i.days))}`:editor.original?s.edited:s.added);
+   setNotice(split?`${s.split(split.days,split.first,split.second)} ${s.updated(intervals(next.periods).map(i=>i.days))}`:editor.original?s.edited:s.added);
   } else {
    if(!editor.text.trim()){setError(s.requiredNote);return;}
    const note:Note={id:editor.original??crypto.randomUUID(),date:editor.date,text:editor.text.trim()};
-   update({...data,notes:[...data.notes.filter(n=>n.id!==editor.original),note]});setNotice(s.noteSaved);
+   if(!update({...data,notes:[...data.notes.filter(n=>n.id!==editor.original),note]})){setError(d.saveFailed);return;}setNotice(s.noteSaved);
   }
   closeEditor();
  }
- function removePeriod(date:string){update(setPeriods(data,data.periods.filter(d=>d!==date)));setNotice(s.removed);}
+ function removePeriod(date:string){if(window.confirm(d.deleteBody)&&update(setPeriods(data,data.periods.filter(d=>d!==date))))setNotice(s.removed);}
  function resetOrDelete(){
   const next=confirm==='reset'?seedDiary(today):emptyDiary();
   try{if(mode){if(confirm==='reset')resetExample(localStorage,today);else deletePersonalDiary(localStorage);}}catch{setStorageError(s.storageError);setConfirm(null);return;}
@@ -80,7 +84,7 @@ export default function Journal({initialMode=null,initialView='diary'}:{initialM
  return <>
  <header className="site-header no-print"><button className="brand" onClick={()=>{setMode(null);setReady(false);}} aria-label={`${s.name} ${s.home}`}><Mark small/>{s.name}<span className="brand-dot">.</span></button><div className="header-right"><span className="private-label"><span className="privacy-dot"/>{s.local}</span>{mode&&<button className="text-button" onClick={()=>setView(view==='diary'?'summary':'diary')}>{view==='diary'?s.summary:s.back} <Arrow/></button>}</div></header>
  {!mode?<main className="landing">
-  <section className="hero"><div className="hero-copy"><p className="eyebrow">{s.journalLabel}</p><h1>{s.name}<span className="masthead-period">.</span></h1><p className="hero-tagline">{s.tagline}</p><p className="hero-description">{s.heroText}</p><div className="hero-actions"><button className="primary" onClick={()=>selectMode('personal')}>{s.start} <Arrow/></button><button className="secondary" onClick={()=>selectMode('example')}>{s.explore} <span aria-hidden="true">→</span></button></div><p className="home-private">{s.local} · {s.noAccount}</p></div>
+  <section className="hero"><div className="hero-copy"><p className="eyebrow">{s.journalLabel}</p><h1>{s.name}<span className="masthead-period">.</span></h1><p className="hero-tagline">{s.tagline}</p><p className="hero-description">{s.heroText}</p><div className="hero-actions"><button className="primary" onClick={()=>selectMode('personal')}>{returning?d.open:s.start} <Arrow/></button><button className="secondary" onClick={()=>selectMode('example')}>{s.explore} <span aria-hidden="true">→</span></button></div><p className="home-private">{s.local} · {s.noAccount}</p></div>
   <section className="preview" aria-label={s.previewTitle}><div className="preview-heading"><span className="eyebrow">{s.previewTitle}</span><span className="example-badge">{s.example}</span></div><h2>{s.previewHeading}</h2>{today?<ol className="preview-timeline">{seedDiary(today).periods.map((date,i)=>{const cycle=intervals(seedDiary(today).periods)[i-1];return <li key={date}>{cycle&&<div className="preview-interval"><strong>{cycle.days}</strong><span>{s.daysBetween}</span></div>}<div className="preview-entry"><span className="preview-tick" aria-hidden="true"/><time dateTime={date}><strong>{date.slice(8)}</strong><span>{formatMonthYear(date)}</span></time><span>{s.periodStart}</span></div></li>;})}</ol>:<p className="preview-loading">{s.loading}</p>}<p className="preview-footnote">{s.previewFootnote}</p></section></section>
   <section className="privacy-banner"><span className="privacy-symbol" aria-hidden="true">⌑</span><div><h3>{s.privacyTitle}</h3><p>{s.privacy}</p></div></section>
  </main>:!ready?<main>{s.loading}</main>:<main className={`workspace ${view==='summary'?'summary-view':''}`}>
