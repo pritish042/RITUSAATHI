@@ -82,3 +82,32 @@ test('month calendar handles leap years, weekday offsets, and year navigation',(
  const feb=monthCells('2024-02');assert.equal(feb.filter(Boolean).length,29);assert.equal(feb[3],'2024-02-01');assert.equal(feb.at(-1),'2024-02-29');
  assert.equal(shiftMonth('2026-12',1),'2027-01');assert.equal(shiftMonth('2026-01',-1),'2025-12');
 });
+
+test('optional daily impact preserves unknown versus unaffected through save, reload, and backup',()=>{
+ const storage=memory();const prior=parseDiary(JSON.stringify(v1),today);
+ assert.equal(dayAt(prior,'2026-11-12').impact,undefined);
+ const updated=putDay(prior,{...dayAt(prior,today),impact:{sleep:true,studyWork:false}},today);
+ saveDiary(storage,'personal',updated);
+ const loaded=loadDiary(storage,'personal',today),day=dayAt(loaded,today);
+ assert.deepEqual(day.impact,{sleep:true,studyWork:false});assert.equal(Object.hasOwn(day.impact??{},'usualActivities'),false);
+ assert.equal(hasObservation(day),true);assert.ok(loggedDates(loaded).includes(today));
+ assert.deepEqual(readBackup(makeBackup(loaded),today),loaded);
+ assert.deepEqual(loaded.notes,prior.notes);assert.deepEqual(loaded.periods,prior.periods);assert.equal(loaded.confirmation,'complete');
+ const unaffected=putDay(emptyDiary(),{...dayAt(emptyDiary(),today),impact:{sleep:false}},today);
+ assert.equal(loggedDates(unaffected).length,1);
+ assert.throws(()=>putDay(emptyDiary(),{...dayAt(emptyDiary(),today),impact:{}},today));
+ const cleared=putDay(loaded,{...day,impact:{},note:'Kept note'},today);
+ assert.deepEqual(dayAt(cleared,today).impact,{});assert.equal(dayAt(cleared,today).note,'Kept note');
+});
+test('impact validation rejects corrupt values without accepting inferred defaults',()=>{
+ for(const impact of [null,[],true,{sleep:'yes'},{studyWork:1},{unknown:true}])assert.throws(()=>parseDiary(JSON.stringify({...emptyDiary(),entries:[{date:today,note:'',symptoms:[],impact}]}),today));
+});
+test('logging completeness reports inclusive date-range denominators and distinct days',()=>{
+ let diary=putDay(emptyDiary(),{...dayAt(emptyDiary(),today),periodStart:true,impact:{sleep:true}},today);
+ diary=putDay(diary,{...dayAt(diary,addDays(today,-4)),note:'Earlier'},today);
+ assert.equal(summaryRecords(diary,today,'90',true).totalDays,90);
+ assert.equal(summaryRecords(diary,today,'90',true).daysLogged,2);
+ assert.equal(summaryRecords(diary,today,'all',true).totalDays,5);
+ assert.equal(summaryRecords(emptyDiary(),today,'all',true).totalDays,1);
+ assert.equal(summaryRecords(emptyDiary(),today,'all',true).daysLogged,0);
+});

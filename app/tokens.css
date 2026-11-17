@@ -1,0 +1,26 @@
+/* Stitch · Warm Editorial Botanical Journal. Self-hosted type, no remote assets. */
+:root {
+  --petrol:#14383B;
+  --petrol-deep:#002225;
+  --porcelain:#FCF9F0;
+  --citron:#DCEB99;
+  --orchid:#DFCDE5;
+  --sage:#E2E8DC;
+  --terracotta:#A94332;
+  --surface-low:#F6F3EA;
+  --surface-high:#EBE8DF;
+  --white:#FFFFFF;
+  --text-secondary:#414849;
+  --hairline:rgba(20,56,59,.13);
+  --radius-control:8px;
+  --radius-card:16px;
+  --radius-sheet:24px;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-6:24px;
+  --space-8:32px;
+  --space-10:40px;
+  --space-12:48px;
+}

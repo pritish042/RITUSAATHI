@@ -1,6 +1,6 @@
 # RituSaathi
 
-**Track your cycle. Know what to ask.** A mobile-friendly menstrual health diary built with Next.js App Router, TypeScript, and responsive CSS. English copy is centralized in `lib/strings.ts` and `lib/daily-strings.ts` for future Odia translation.
+**Track your cycle. Know what to ask.** A mobile-friendly menstrual health diary built with Next.js App Router, TypeScript, and responsive CSS. Shared English copy lives in `lib/strings.ts` and `lib/daily-strings.ts`.
 
 ## Run locally
 
@@ -18,12 +18,12 @@ Open http://127.0.0.1:3000. For development use `npm run dev`. No environment va
 
 ## Personal diary
 
-- `/diary`: Today, one daily check-in, the last explicit period start, and elapsed calendar days.
+- `/diary`: the Stitch Today dashboard, recent entries, a compact calendar, the last explicit period start, and elapsed calendar days.
 - `/diary/history`: month calendar and chronological list, date details, completed cycle intervals, and date-verification flow.
-- `/diary/summary`: last 90 days, last 6 calendar months, or all records; distinct **days logged**; optional diary-note inclusion; appointment questions; the document preview is the printable content.
+- `/diary/summary`: last 90 days, last 6 calendar months, or all records; distinct **days logged with the inclusive date-range denominator**; optional diary-note inclusion; appointment questions; the document preview is the printable content.
 - `/diary/settings`: local JSON backup/restore, privacy controls, and optional cycle-observation profile.
 
-A check-in can include an explicit period start, flow, cramps, symptoms, and a short note. Every field is optional, but at least one observation is needed. Unanswered values stay unknown; spotting/flow do not create period starts. Selecting an existing date loads its saved values and separate older notes. Deleting a day requires confirmation. Browser storage must succeed before a check-in is marked saved; a failed save leaves the draft open.
+A check-in can include an explicit period start, flow, cramps, symptoms, optional sleep / study-work / usual-activity impact, and a short note. It opens as a desktop dialog or a mobile bottom sheet with a pinned save action. Impact choices distinguish unknown, affected, and explicitly not affected. Every field is optional, but at least one observation is needed. Unanswered values stay unknown; spotting/flow do not create period starts. Selecting an existing date loads its saved values and separate older notes. Deleting a day requires confirmation. Browser storage must succeed before a check-in is marked saved; a failed save leaves the draft open.
 
 ## Two-minute demo
 
@@ -36,13 +36,13 @@ A check-in can include an explicit period start, flow, cramps, symptoms, and a s
 
 ## Privacy and storage
 
-Personal and fictional records use distinct local-storage keys (`ritusaathi.personal.v1` and `ritusaathi.example.v1`). Opening/resetting the example never writes the personal key. The app does not send diary contents in URLs, network requests, logs, analytics, or AI calls. Instrument Serif and DM Sans are bundled locally through Fontsource packages (with Georgia/system-sans fallbacks); the build does not download fonts. All assets are local; clinical reference links are opened only when chosen. Browser print/PDF is controlled by the user.
+Personal and fictional records use distinct local-storage keys (`ritusaathi.personal.v1` and `ritusaathi.example.v1`). Opening/resetting the example never writes the personal key. The app does not send diary contents in URLs, network requests, logs, analytics, or AI calls. Newsreader and DM Sans are bundled locally through Fontsource packages (with Georgia/system-sans fallbacks); the build does not download fonts. All assets are local; clinical reference links are opened only when chosen. Browser print/PDF is controlled by the user.
 
 Local storage is **not encrypted or access-controlled**. Anyone using the same device and browser profile may read it. Clearing browser/site data, using a temporary browser session, or changing browser profiles can remove or hide records. Multiple tabs are not synchronized; use one tab for editing. Storage errors show a visible warning, and malformed saved data is not silently overwritten. **Delete my diary** requires confirmation and removes the personal storage key, including dates, symptoms, context, and questions.
 
 Backups contain private health information in plain text. The JSON file is generated and read locally; it is never uploaded to a service. Restore validates the envelope, dates, choices, and duplicate records, previews counts, and requires confirmation before replacing the personal diary. Invalid files leave existing records intact. Keep downloaded backups private.
 
-The v2 data format adds `schemaVersion: 2` and an `entries` array while retaining the original period starts, separate dated notes, confirmation, profile, and questions. Existing production v1 records are upgraded in memory without writing on load; successful later saves persist v2 using the existing isolated storage keys. Unreadable data is locked rather than replaced, and Settings can download the original saved bytes for recovery. Back up before using older app versions, which do not understand daily entries.
+The v2 data format adds `schemaVersion: 2` and an `entries` array while retaining the original period starts, separate dated notes, confirmation, profile, and questions. Existing production v1 records are upgraded in memory without writing on load; successful later saves persist v2 using the existing isolated storage keys. Unreadable data is locked rather than replaced, and Settings can download the original saved bytes for recovery. The Stitch update adds optional `impact` properties to v2 entries without changing storage keys or overwriting existing records. Absent impact fields remain unknown; explicit `false` means not affected. Back up before using older app versions, which do not understand daily entries or may discard impact fields on save.
 
 ## Observation scope — pending clinician review
 
@@ -56,11 +56,19 @@ Clinical reference requested for the prototype: [Recommendations from the 2023 I
 
 `npm test` covers relative seed intervals, computed midpoint correction, exact 35-day boundaries, latest-three selection, all eligibility gates, sparse history, leap years, month/year/DST boundaries across time zones, date validation, storage validation, and confirmation invalidation. `npm run lint` and `npm run build` check the complete application. Period-date validation and duplicate rejection also run in the UI. Calendar intervals use ISO calendar dates converted to UTC ordinal days; “days since latest start” is separately labeled elapsed time.
 
-Upgrade verification: **27 tests passed**, **ESLint passed**, and the **standard Next.js production build passed**. Tests cover production v1 migration, separate older notes and confirmation, flow/start independence, one record per date, editing/deletion, date/calendar boundaries, summary ranges and days-logged counts, backup round trips and malformed-file rejection, storage failures, and private-note exclusion from the actual rendered print document. The original observation and midpoint-correction tests still pass.
+Stitch implementation verification (17 November 2026): **31 tests passed**, **ESLint passed**, and the **standard Next.js production build passed**. The suite covers v1 migration, separate older notes, confirmation invalidation, flow/start independence, one record per date, edits/deletion, leap years and DST, range boundaries, completeness denominators, backup/import validation, storage failures, and private-note exclusion from the rendered print document. New tests cover impact-only entries, explicit false versus unknown, impact validation, lossless backup/reload, and accurate self-confirmation wording.
 
-Chrome browser checks on a separate local origin (`http://127.0.0.1:3001`) verified yesterday's period start plus today's flow, refresh persistence, cramps editing without duplication, matching calendar/list/summary records, the 375px calendar and summary, downloaded JSON backup and confirmed restore, malformed-file rejection, and excluded notes absent from the print preview. Chrome's console showed no messages during the checked History workflow. QA data was fictional and isolated from existing port-3000 records.
+Safari checks on the running local app verified:
 
-Browser checking was stopped at the user's request before completing the upgraded fictional midpoint interaction and rechecking personal data after it. The midpoint logic and personal/example isolation pass automated tests. Browser storage-quota failure, OS reduced-motion settings, screen-reader use, physical devices, and final PDF-file saving were not exercised. The source includes reduced-motion support. A final small wording-only change followed the successful production build.
+- Empty personal diary, logging a synthetic daily observation and yesterday’s explicit period start, refresh persistence, and editing cramps and the personal note.
+- Calendar previous-month and return-to-today controls, selected-day details, and arrow-key navigation with focus following the selected date.
+- Summary range changes, matching range/count denominators, and excluding note text from the preview. The print action opened a two-page A4 print preview with navigation and controls hidden, with intact observation blocks.
+- The fictional midpoint interaction split the saved 48-day interval into 24 and 24 days, cleared date confirmation, and withdrew the old observation. Returning to the personal diary showed its original synthetic records intact.
+- Desktop screenshots of Today, History, Summary, and the check-in dialog; Safari Responsive Design Mode at **390 × 812** for Today, History, Summary, the mobile bottom sheet, and the fictional correction. The layouts were compared with `design-reference/stitch/`; no horizontal overflow was observed. Mobile review prompted fixes to the Settings accessible name and the range selector’s touch height.
+
+The export’s petrol, porcelain, citron, orchid, typography, spacing, cards, and selectors are implemented through shared `app/tokens.css`, `app/stitch.css`, and reusable calendar/icon components. Exported HTML and screenshots remain reference assets, not executable application code. Unsupported export content (phase/fertility predictions, heart-rate trends, fabricated clinical statistics, encrypted-vault claims, sync timestamps, and inert language/account controls) is omitted. Statistics and interval bars derive from saved records; unlogged days remain unknown.
+
+Browser deletion, backup download/restore, corrupt-file recovery, quota exhaustion, reduced-motion OS settings, screen-reader operation, physical devices, and final PDF-file saving were not re-exercised in this pass; relevant persistence/import/deletion paths have automated tests. No installable PWA or offline guarantee is provided, and conflicting multi-tab edits remain a documented limitation. No deployment was performed.
 
 ## Deploy to Vercel
 

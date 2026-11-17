@@ -4,7 +4,8 @@ export type Eligibility = { adult: Answer; established: Answer; natural: Answer;
 export type Note = { id: string; date: string; text: string };
 export type Flow = 'spotting' | 'light' | 'medium' | 'heavy';
 export type Cramps = 'none' | 'mild' | 'moderate' | 'severe';
-export type DailyEntry = { date: string; flow?: Flow; cramps?: Cramps; symptoms: string[]; note: string };
+export type DailyImpact = { sleep?: boolean; studyWork?: boolean; usualActivities?: boolean };
+export type DailyEntry = { date: string; flow?: Flow; cramps?: Cramps; symptoms: string[]; note: string; impact?: DailyImpact };
 export type Diary = { schemaVersion: 2; entries: DailyEntry[]; periods: string[]; notes: Note[]; eligibility: Eligibility; confirmation: 'unconfirmed' | 'complete' | 'unsure'; questions: string };
 export const emptyEligibility = (): Eligibility => ({ adult: '', established: '', natural: '', outside: '' });
 export const emptyDiary = (): Diary => ({ schemaVersion: 2, entries: [], periods: [], notes: [], eligibility: emptyEligibility(), confirmation: 'unconfirmed', questions: '' });
@@ -59,11 +60,12 @@ export function parseDiary(raw: string, today = todayISO()): Diary {
   if (d.schemaVersion === 2 && !Array.isArray(d.entries)) throw new Error('Missing entries');
   const entries = d.entries ?? [];
   if (!Array.isArray(entries) || entries.some((e: DailyEntry)=>!e || !validDate(e.date) || (e.flow!==undefined && !['spotting','light','medium','heavy'].includes(e.flow)) || (e.cramps!==undefined && !['none','mild','moderate','severe'].includes(e.cramps)) || !Array.isArray(e.symptoms) || e.symptoms.some(v=>typeof v!=='string'||!v.trim()||v.length>100) || new Set(e.symptoms).size!==e.symptoms.length || typeof e.note!=='string') || new Set(entries.map((e:DailyEntry)=>e.date)).size!==entries.length) throw new Error('Invalid daily entries');
+  if (entries.some((e:DailyEntry)=>e.impact!==undefined && (!e.impact || typeof e.impact!=='object' || Array.isArray(e.impact) || Object.entries(e.impact).some(([key,value])=>!['sleep','studyWork','usualActivities'].includes(key) || typeof value!=='boolean')))) throw new Error('Invalid daily impact');
   return {
     schemaVersion: 2,
     periods: sortedPeriods(d.periods),
     notes: d.notes.map((n:Note)=>({id:n.id,date:n.date,text:n.text})),
-    entries: entries.map((e:DailyEntry)=>({date:e.date,...(e.flow?{flow:e.flow}:{}),...(e.cramps?{cramps:e.cramps}:{}),symptoms:[...e.symptoms],note:e.note})).sort((a:DailyEntry,b:DailyEntry)=>a.date.localeCompare(b.date)),
+    entries: entries.map((e:DailyEntry)=>({date:e.date,...(e.flow?{flow:e.flow}:{}),...(e.cramps?{cramps:e.cramps}:{}),...(e.impact?{impact:{...e.impact}}:{}),symptoms:[...e.symptoms],note:e.note})).sort((a:DailyEntry,b:DailyEntry)=>a.date.localeCompare(b.date)),
     eligibility: {adult:d.eligibility.adult, established:d.eligibility.established, natural:d.eligibility.natural, outside:d.eligibility.outside},
     questions:d.questions, confirmation:d.confirmation,
   };

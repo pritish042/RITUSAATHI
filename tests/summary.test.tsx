@@ -10,3 +10,12 @@ test('actual print document excludes private notes from rendered markup and reta
  const included=renderToStaticMarkup(<SummaryDocument diary={diary} today="2026-11-16" range="all" includeNotes example/>);
  assert.ok(included.includes('PRIVATE_LEGACY_SENTINEL'));assert.ok(included.includes('PRIVATE_DAILY_SENTINEL'));
 });
+test('summary reports exact completeness denominator, self-confirmation, and optional daily impact',()=>{
+ const diary={...emptyDiary(),confirmation:'complete' as const,entries:[{date:'2026-11-16',note:'',symptoms:[],impact:{sleep:true,studyWork:false}}]};
+ const html=renderToStaticMarkup(<SummaryDocument diary={diary} today="2026-11-16" range="90" includeNotes/>);
+ assert.ok(html.includes('of 90 days logged'));assert.ok(html.includes('Dates confirmed by you.'));
+ assert.ok(html.includes('Sleep'));assert.ok(html.includes('Affected'));assert.ok(html.includes('Not affected'));
+ assert.ok(html.includes('19 Aug 2026'));assert.ok(html.includes('16 Nov 2026'));
+ assert.equal(html.includes('Usual activities'),false);
+ assert.equal(html.includes('Mean recorded interval'),false);
+});

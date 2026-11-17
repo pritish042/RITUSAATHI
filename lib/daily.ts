@@ -1,4 +1,4 @@
-import { addDays, type Diary, type DailyEntry, type Note, intervals, parseDiary, setPeriods, validateDate } from './diary';
+import { addDays, daysBetween, type Diary, type DailyEntry, type Note, intervals, parseDiary, setPeriods, validateDate } from './diary';
 
 export type Day = DailyEntry & { periodStart: boolean; legacyNotes: Note[] };
 export function dayAt(diary: Diary, date: string): Day {
@@ -6,10 +6,10 @@ export function dayAt(diary: Diary, date: string): Day {
   return {date, symptoms:[], note:'', ...entry, periodStart: diary.periods.includes(date), legacyNotes:diary.notes.filter(n=>n.date===date).map(n=>({...n}))};
 }
 export function hasObservation(day: Day): boolean {
-  return day.periodStart || !!day.flow || day.cramps !== undefined || day.symptoms.length>0 || !!day.note.trim() || day.legacyNotes.some(n=>!!n.text.trim());
+  return day.periodStart || !!day.flow || day.cramps !== undefined || Object.values(day.impact??{}).some(v=>typeof v==='boolean') || day.symptoms.length>0 || !!day.note.trim() || day.legacyNotes.some(n=>!!n.text.trim());
 }
 export function loggedDates(diary: Diary): string[] {
-  return [...new Set([...diary.periods, ...diary.notes.map(n=>n.date), ...diary.entries.filter(e=>!!e.flow||e.cramps!==undefined||!!e.note.trim()||e.symptoms.length>0).map(e=>e.date)])].sort();
+  return [...new Set([...diary.periods, ...diary.notes.map(n=>n.date), ...diary.entries.filter(e=>hasObservation({...e,periodStart:false,legacyNotes:[]})).map(e=>e.date)])].sort();
 }
 /** Save exactly one daily record; starts remain explicit and independent of flow. */
 export function putDay(diary: Diary, day: Day, today: string): Diary {
@@ -19,9 +19,9 @@ export function putDay(diary: Diary, day: Day, today: string): Diary {
   if(day.periodStart) nextPeriods.push(day.date);
   const changed=diary.periods.includes(day.date)!==day.periodStart;
   const next=changed?setPeriods(diary,nextPeriods):{...diary};
-  const entry: DailyEntry={date:day.date,...(day.flow?{flow:day.flow}:{}),...(day.cramps!==undefined?{cramps:day.cramps}:{}),symptoms:[...day.symptoms],note:day.note.trim()};
+  const entry: DailyEntry={date:day.date,...(day.flow?{flow:day.flow}:{}),...(day.cramps!==undefined?{cramps:day.cramps}:{}),...(day.impact?{impact:{...day.impact}}:{}),symptoms:[...day.symptoms],note:day.note.trim()};
   const entries=diary.entries.filter(e=>e.date!==day.date);
-  if(entry.flow||entry.cramps!==undefined||entry.symptoms.length||entry.note)entries.push(entry);
+  if(hasObservation({...entry,periodStart:false,legacyNotes:[]}))entries.push(entry);
   return {...next, entries:entries.sort((a,b)=>a.date.localeCompare(b.date)), notes:[...diary.notes.filter(n=>n.date!==day.date),...day.legacyNotes.map(n=>({...n,date:day.date}))]};
 }
 export function removeDay(diary: Diary,date: string): Diary {
@@ -39,7 +39,7 @@ export function summaryRecords(diary:Diary,today:string,range:Range,includeNotes
   const allDates=loggedDates(diary);
   const from=range==='90'?addDays(today,-89):range==='6months'?subtractMonths(today,6):(allDates[0]??today);
   const dates=allDates.filter(d=>d>=from&&d<=today);
-  return {from,to:today,daysLogged:dates.length,periods:diary.periods.filter(d=>d>=from&&d<=today),intervals:intervals(diary.periods).filter(i=>i.end>=from&&i.end<=today),days:dates.map(date=>{
+  return {from,to:today,totalDays:daysBetween(from,today)+1,daysLogged:dates.length,periods:diary.periods.filter(d=>d>=from&&d<=today),intervals:intervals(diary.periods).filter(i=>i.end>=from&&i.end<=today),days:dates.map(date=>{
     const day=dayAt(diary,date);
     return {...day,note:includeNotes?day.note:'',legacyNotes:includeNotes?day.legacyNotes:[]};
   })};
